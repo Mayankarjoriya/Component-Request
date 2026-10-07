@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  # 1. MongoDB Service
+  mongo:
+    image: mongo:7
+    container_name: triage-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    restart: unless-stopped
+
+  analysis:
+    build: 
+      context: ./analysis
+    container_name: triage-analysis
+    ports:
+      - "8000:8000"
+    restarts: unless-stopped
+    volumes:
+      - ./analysis:/app
+    # 3. Node.js Express API
+  api:
+    build: 
+      context: ./api
+    container_name: triage-api
+    ports:
+      - "3001:3001"
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/triage
+      - ANALYSIS_URL=http://analysis:8000
+    depends_on:
+      - mongo
+      - analysis
+    restart: unless-stopped
+    volumes:
+      - ./api:/app
+    # 4. React Frontend
+  frontend:
+    build: 
+      context: ./frontend
+    container_name: triage-frontend
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:3001/api 
+    depends_on:
+      - api
+    restart: unless-stopped
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+
+
+
